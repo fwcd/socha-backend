@@ -18,7 +18,7 @@ configurations {
 
 artifacts {
     val kt = tasks["compileTestConfigKotlin"]
-    add("testConfig", kt.outputs.files.singleFile) {
+    add("testConfig", kt.outputs.files.files.find { it.name == "testConfig" }) {
         builtBy(kt)
     }
 }

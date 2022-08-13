@@ -6,9 +6,8 @@ import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 
 plugins {
-    maven
-    kotlin("jvm") version "1.5.20"
-    id("org.jetbrains.dokka") version "0.10.1"
+    kotlin("jvm") version "1.7.10"
+    id("org.jetbrains.dokka") version "1.7.10"
     id("scripts-task")
     
     id("com.github.ben-manes.versions") version "0.39.0"
@@ -46,13 +45,11 @@ tasks {
     val doc by creating(DokkaTask::class) {
         dependsOn(documentedProjects.map { ":$it:classes" })
         group = "documentation"
-        outputDirectory = deployDir.resolve("doc").toString()
-        outputFormat = "javadoc"
-        subProjects = documentedProjects
-        configuration {
-            reportUndocumented = false
-            moduleName = "Software-Challenge API $version"
-            jdkVersion = 8
+        outputDirectory.set(deployDir.resolve("doc"))
+        dokkaSourceSets {
+            configureEach {
+                moduleName.set("Software-Challenge API $version")
+            }
         }
     }
     
@@ -263,18 +260,16 @@ subprojects {
 allprojects {
     repositories {
         mavenCentral()
-        maven("http://maven.wso2.org/nexus/content/groups/wso2-public/")
+        maven("https://maven.wso2.org/nexus/content/groups/wso2-public/")
     }
     
     if (this.name in documentedProjects) {
-        apply(plugin = "maven")
         apply(plugin = "org.jetbrains.dokka")
         tasks {
             val doc by creating(DokkaTask::class) {
                 group = "documentation"
                 dependsOn(classes)
-                outputDirectory = buildDir.resolve("doc").toString()
-                outputFormat = "javadoc"
+                outputDirectory.set(buildDir.resolve("doc"))
             }
             val docJar by creating(Jar::class) {
                 group = "build"
@@ -287,9 +282,6 @@ allprojects {
                 archiveBaseName.set(jar.get().archiveBaseName)
                 archiveClassifier.set("sources")
                 from(sourceSets.main.get().allSource)
-            }
-            install {
-                dependsOn(docJar, sourcesJar)
             }
             artifacts {
                 archives(sourcesJar.archiveFile) { classifier = "sources" }
