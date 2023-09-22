@@ -2,11 +2,19 @@ package sc.player;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.thoughtworks.xstream.XStream;
 import sc.api.plugins.IGameState;
 import sc.api.plugins.IMove;
 import sc.api.plugins.TwoPlayerGameState;
 import sc.shared.GameResult;
+import sc.networking.XStreamProvider;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 import java.util.List;
 
 /**
@@ -21,6 +29,8 @@ public class Logic implements IGameHandler {
   /** Aktueller Spielstatus. */
   private TwoPlayerGameState<IMove> gameState;
 
+  private XStream xStream = XStreamProvider.loadPluginXStream();
+
   /** In dieser Methode habt ihr 2 Sekunden (berechnet etwas Puffer ein) Zeit,
    * um euren nächsten Zug zu planen. */
   @Override
@@ -29,6 +39,7 @@ public class Logic implements IGameHandler {
     log.info("Es wurde ein Zug von {} angefordert.", gameState.getCurrentTeam());
 
     List<IMove> possibleMoves = gameState.getSensibleMoves();
+    
     // Hier intelligente Strategie zur Auswahl des Zuges einfügen
     IMove move = possibleMoves.get((int) (Math.random() * possibleMoves.size()));
 
@@ -40,6 +51,21 @@ public class Logic implements IGameHandler {
   @Override
   public void onUpdate(IGameState gameState) {
     this.gameState = (TwoPlayerGameState<IMove>) gameState;
+
+    // DEBUG
+    Path dirPath = Paths.get("game-dump");
+    Path path = dirPath.resolve("" + gameState.getTurn());
+    try {
+      Files.createDirectories(dirPath);
+      Path statePath = dirPath.resolve(String.format("%02d.state.xml", gameState.getTurn()));
+      Files.writeString(statePath, xStream.toXML(gameState));
+
+      Path movesPath = dirPath.resolve(String.format("%02d.moves.xml", gameState.getTurn()));
+      Files.writeString(movesPath, xStream.toXML(this.gameState.getSensibleMoves()));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
     log.info("Zug: {} Dran: {}", gameState.getTurn(), gameState.getCurrentTeam());
   }
 
